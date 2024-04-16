@@ -1,0 +1,28 @@
+{
+  "name": "kitewoapi",
+  "version": "1.0.0",
+  "description": "Kite API Unofficial",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/suyogbpatil/kitewoapi-js.git"
+  },
+  "keywords": [
+    "kite",
+    "zerodha",
+    "api"
+  ],
+  "author": "suyotech.com",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/suyogbpatil/kitewoapi-js/issues"
+  },
+  "homepage": "https://github.com/suyogbpatil/kitewoapi-js#readme",
+  "dependencies": {
+    "axios": "^1.6.8",
+    "totp-generator": "^1.0.0"
+  }
+}

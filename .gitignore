@@ -128,3 +128,13 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+#instruments
+instruments.csv
+
+#access_token
+access_token.json
+
+
+#test files
+*test*
