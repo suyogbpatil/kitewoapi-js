@@ -84,40 +84,62 @@ class KiteWoAPI {
       place_order: `${this.rootUrl}/orders/:variety`,
       modifiy_order: `${this.rootUrl}/orders/:variety/:order_id`,
       cancel_order: `${this.rootUrl}/orders/:variety/:order_id`,
+      hist_candle_data: `${this.rootUrl}/instruments/historical/:instrument_token/:interval`,
     };
 
     this.debug = false;
 
     //Contants
 
-    this.orderParams = {
-      variety: {
-        regular: "regular",
-        amo: "amo",
-        co: "co",
-        iceberg: "iceberg",
-        auction: "auction",
-      },
-      order_type: {
-        MARKET: "MARKET",
-        LIMIT: "LIMIT",
-        SL: "SL",
-        "SL-M": "SL-M",
-      },
-      product: {
-        CNC: "CNC",
-        NRML: "NRML",
-        MIS: "MIS",
-      },
-      validity: {
-        DAY: "DAY",
-        IOC: "IOC",
-        TTL: "TTL",
-      },
-      transaction_type: {
-        BUY: "BUY",
-        SELL: "SELL",
-      },
+    this.exchange = {
+      NSE: "NSE",
+      BSE: "BSE",
+      NFO: "NFO",
+      MCX: "MCX",
+    };
+
+    this.variety = {
+      regular: "regular",
+      amo: "amo",
+      co: "co",
+      iceberg: "iceberg",
+      auction: "auction",
+    };
+
+    this.order_type = {
+      MARKET: "MARKET",
+      LIMIT: "LIMIT",
+      SL: "SL",
+      "SL-M": "SL-M",
+    };
+
+    this.product = {
+      CNC: "CNC",
+      NRML: "NRML",
+      MIS: "MIS",
+    };
+
+    this.validity = {
+      DAY: "DAY",
+      IOC: "IOC",
+      TTL: "TTL",
+    };
+
+    this.transaction_type = {
+      BUY: "BUY",
+      SELL: "SELL",
+    };
+
+    //hist interval
+    this.interval = {
+      minute: "minute",
+      day: "day",
+      three_min: "3minute",
+      five_min: "5minute",
+      ten_min: "10minute",
+      fifteen_min: "15minute",
+      thirty_min: "30minute",
+      sixty_minute: "60minute",
     };
   }
 
@@ -269,6 +291,11 @@ class KiteWoAPI {
     }
   }
 
+  /**
+   * @method orderinfo gets order details of given orderid
+   * @param {String} orderid
+   * @returns
+   */
   async orderinfo(orderid = null) {
     try {
       if (!orderid) {
@@ -285,6 +312,21 @@ class KiteWoAPI {
    * @async
    * @param {Object} params
    * @param {String} params.variety  - Variety
+   * @param {String} params.tradingsymbol  - TradingSymbol
+   * @param {String} params.exchange  - Exchange
+   * @param {String} params.transaction_type  - Transaction Type 'BUY'|'SELL'
+   * @param {String} params.order_type - Order Type - "MARKET" | "LIMIT" | "SL" | "SL-M"
+   * @param {String} params.quantity - Quantity to be traded
+   * @param {String} params.product - Product Type "CNC" | "NRML" | 'MIS'
+   * @param {Number} params.price - Price scrip (For LIMIT orders)
+   * @param {Number} params.trigger_price The price at which an order should be triggered (SL, SL-M)
+   * @param {Number} params.disclosed_quantity Quantity to disclose publicly (for equity trades)
+   * @param {String} params.validity Order validity (DAY, IOC and TTL)
+   * @param {Number} params.validity_ttl Order life span in minutes for TTL validity orders
+   * @param {Number} params.iceberg_legs  Total number of legs for iceberg order type (number of legs per Iceberg should be between 2 and 10)
+   * @param {Number} params.iceberg_quantity Split quantity for each iceberg leg order (quantity/iceberg_legs)
+   * @param {String} params.auction_number A unique identifier for a particular auction
+   * @param {String} params.tag  An optional tag to apply to an order to identify it (alphanumeric, max 20 chars)
    */
   async place_order(params) {
     if (
@@ -294,16 +336,73 @@ class KiteWoAPI {
       !params.transaction_type ||
       !params.order_type ||
       !params.quantity ||
-      params.quantity == 0 ||
       !params.product
     ) {
       console.log("place order params missing");
       return;
     }
 
-    orderparam = {
-      tradingsymbol,
+    try {
+      return await this.axiosInstance.post(this.urls.place_order.replace(":variety", params.variety), params);
+    } catch (error) {
+      this.showError(error);
+      return null;
+    }
+  }
+
+  /**
+   *
+   * @param {*} params
+   * @returns
+   */
+  async modifiy_order(params) {
+    try {
+      if (!params.variety || !params.orderid) {
+        console.log("place order params missing");
+        return;
+      }
+      return await this.axiosInstance.post(
+        this.urls.modifiy_order.replace(":variety", params.variety).replace(":order_id", params.orderid),
+        params
+      );
+    } catch (error) {
+      this.showError(error);
+      return null;
+    }
+  }
+
+  /**
+   * @async
+   * @medhod To get historical candle data
+   * @param {Object} params Object of parameters (instrumenttoken, interval,from,to,continous,io)
+   * @param {String} params.instrument_token Instrument Token
+   * @param {String} params.interval (minute,day,3minute,5minute,10minute,15minute,30minute,60minute)
+   * @param {String} params.from Date in format of 2024-04-01 : 09:15 (yyyy-mm-dd hh:mm:ss)
+   * @param {String} params.to Date in format of 2024-04-01 : 09:15:00 (yyyy-mm-dd hh:mm:ss)
+   * @param {Boolean} params.continuous to get continuous data true or false
+   * @param {Boolean} params.oi to get oi data true or false
+   */
+  async candle_data(params) {
+    if (!params.instrument_token || !params.interval || !params.from || !params.to) {
+      console.log("some params missing");
+      return;
+    }
+
+    const urlparams = {
+      from: params.from,
+      to: params.to,
+      continuous: params.continuous ? 1 : 0,
+      oi: params.oi ? 1 : 0,
     };
+
+    return this.axiosInstance.get(
+      this.urls.hist_candle_data
+        .replace(":instrument_token", params.instrument_token)
+        .replace(":interval", params.interval),
+      {
+        params: urlparams,
+      }
+    );
   }
 }
 

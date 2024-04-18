@@ -175,10 +175,12 @@ function GetOptionStrikes(params, loadedfile = null) {
   }
 }
 
-export default KiteInst = {
+const KiteInst = {
   loadFileData,
   CheckInstruments,
   FindInstrument,
   GetOptionStrikes,
   GetExpiryDates,
 };
+
+export default KiteInst;
