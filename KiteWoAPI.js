@@ -416,7 +416,7 @@ class KiteWoAPI {
         oi: params.oi ? 1 : 0,
       };
 
-      return this.axiosInstance.get(
+      const respdata = await this.axiosInstance.get(
         this.urls.hist_candle_data
           .replace(":instrument_token", params.instrument_token)
           .replace(":interval", params.interval),
@@ -424,6 +424,21 @@ class KiteWoAPI {
           params: urlparams,
         }
       );
+
+      // console.log("respdata", respdata.candles);
+      if (Array.isArray(respdata.candles)) {
+        return respdata.candles.map(([time, open, high, low, close, v, oi = null]) => ({
+          time,
+          open,
+          high,
+          low,
+          close,
+          v,
+          oi,
+        }));
+      } else {
+        throw new Error("not array");
+      }
     } catch (error) {
       this.showError(error);
       return null;
