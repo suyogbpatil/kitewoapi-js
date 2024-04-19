@@ -58,9 +58,9 @@ class KiteWoAPI {
         }
       },
       (error) => {
-        if (error.response.data.message) {
+        if (error.response?.data.message) {
           console.log("response error : ", error.response.data.message);
-        } else if (error.request.message) {
+        } else if (error.request?.message) {
           console.log("request error :", error.request.message);
         } else {
           console.log("other error : ", error.message);
@@ -85,6 +85,9 @@ class KiteWoAPI {
       modifiy_order: `${this.rootUrl}/orders/:variety/:order_id`,
       cancel_order: `${this.rootUrl}/orders/:variety/:order_id`,
       hist_candle_data: `${this.rootUrl}/instruments/historical/:instrument_token/:interval`,
+      quotes: `${this.rootUrl}/quote`,
+      quotes_ohlc: `${this.rootUrl}/quote/ohlc`,
+      quotes_ltp: `${this.rootUrl}/quote/ltp`,
     };
 
     this.debug = false;
@@ -352,7 +355,7 @@ class KiteWoAPI {
 
   /**
    *
-   * @param {*} params
+   * @param {*} params {variety,order_id,...}
    * @returns
    */
   async modifiy_order(params) {
@@ -361,8 +364,25 @@ class KiteWoAPI {
         console.log("place order params missing");
         return;
       }
-      return await this.axiosInstance.post(
+      return await this.axiosInstance.put(
         this.urls.modifiy_order.replace(":variety", params.variety).replace(":order_id", params.orderid),
+        params
+      );
+    } catch (error) {
+      this.showError(error);
+      return null;
+    }
+  }
+
+  /**
+   *
+   * @param {Object} params {variety,order_id}
+   * @returns
+   */
+  async cancel_order(params) {
+    try {
+      return this.axiosInstance.delete(
+        this.urls.cancel_order.replace(":variety", params.variety).replace(":order_id", params.orderid),
         params
       );
     } catch (error) {
@@ -379,30 +399,63 @@ class KiteWoAPI {
    * @param {String} params.interval (minute,day,3minute,5minute,10minute,15minute,30minute,60minute)
    * @param {String} params.from Date in format of 2024-04-01 : 09:15 (yyyy-mm-dd hh:mm:ss)
    * @param {String} params.to Date in format of 2024-04-01 : 09:15:00 (yyyy-mm-dd hh:mm:ss)
-   * @param {Boolean} params.continuous to get continuous data true or false
-   * @param {Boolean} params.oi to get oi data true or false
+   * @param {Boolean} params.continuous Continuous data true or false
+   * @param {Boolean} params.oi Get oi data true or false
    */
   async candle_data(params) {
-    if (!params.instrument_token || !params.interval || !params.from || !params.to) {
-      console.log("some params missing");
-      return;
-    }
-
-    const urlparams = {
-      from: params.from,
-      to: params.to,
-      continuous: params.continuous ? 1 : 0,
-      oi: params.oi ? 1 : 0,
-    };
-
-    return this.axiosInstance.get(
-      this.urls.hist_candle_data
-        .replace(":instrument_token", params.instrument_token)
-        .replace(":interval", params.interval),
-      {
-        params: urlparams,
+    try {
+      if (!params.instrument_token || !params.interval || !params.from || !params.to) {
+        console.log("some params missing");
+        return;
       }
-    );
+
+      const urlparams = {
+        from: params.from,
+        to: params.to,
+        continuous: params.continuous ? 1 : 0,
+        oi: params.oi ? 1 : 0,
+      };
+
+      return this.axiosInstance.get(
+        this.urls.hist_candle_data
+          .replace(":instrument_token", params.instrument_token)
+          .replace(":interval", params.interval),
+        {
+          params: urlparams,
+        }
+      );
+    } catch (error) {
+      this.showError(error);
+      return null;
+    }
+  }
+
+  static convertToQuery = () => {
+    return Object.entries(data)
+      .map(([key, value]) => {
+        if (Array.isArray(value)) {
+          return value.map((val) => `i=${key}:${val}`).join("&");
+        } else {
+          return [`i=${key}:${value}`];
+        }
+      })
+      .join("&");
+  };
+
+  /**
+   * Function to get full quotes of symbols limit upto 500
+   * @param {Object} params {BSE : SENSEX,NSE : ["NIFTY 50","INFY"]}
+   * \n Pass array of tradingsymbol of same exchanges
+   */
+  async quotes(data) {
+    try {
+      const urlStrings = convertToQuery(data);
+
+      return this.axiosInstance.get(this.urls.quotes + `?${urlStrings}`);
+    } catch (error) {
+      this.showError(error);
+      return null;
+    }
   }
 }
 
